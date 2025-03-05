@@ -7,17 +7,28 @@
 #include <unistd.h>
 #include <errno.h>
 #include <pthread.h>
-#define ADDRESS "127.0.0.1"
+#define ADDRESS "192.168.1.59"
 
 typedef struct clientinfo {
   int client_number;
 } client_info;
 
-enum clients 
+enum ERRORS 
+{
+  SEND_ERROR =-5,
+  RECV_ERROR =-6,
+  READ_ERROR =-7,
+  ACCEPT_ERROR = -8,
+  BIND_ERROR = -9,
+  ACCEPT_ERROR= -10,
+  SOCKET_ERROR = -11
+};
+enum VALUES 
 {
   MAX_CLIENTS = 10,
   PORT = 6342,
   BUFFSIZE = 4096
+
 };
 int clients[MAX_CLIENTS];
 pthread_t threads[MAX_CLIENTS];
@@ -25,11 +36,11 @@ pthread_t threads[MAX_CLIENTS];
 int broadcast(char * message,int clientnumber)
 {
   char indicator[100];
-  sprintf(indicator,
+  snprintf(indicator,99,
           "(client %d)>>",
           clientnumber);
-  char broadcast_text[BUFFSIZE+strlen(indicator)];
-  sprintf(broadcast_text,
+  char broadcast_text[BUFFSIZE+100];
+  snprintf(broadcast_text,BUFFSIZE+99,
           "(client %d)>>%s",clientnumber,
           message);
   for (int i = 0;i<MAX_CLIENTS;i++)
@@ -42,8 +53,8 @@ int broadcast(char * message,int clientnumber)
                  strlen(broadcast_text),
                  MSG_EOR))
     {
-      perror("sorry cannot speak");
-      return -1;
+      perror("i forgot how to shout");
+      return SEND_ERROR;
     }
   }
 }
@@ -51,38 +62,27 @@ void * handle_client(void* clientnumber_ptr)
 {
   int clientnumber = *((int*) clientnumber_ptr);
   int clientsocket = clients[clientnumber];
-  char message[BUFFSIZE], *servername = "localhost";
-  char *response = "congratz , you have sent something"
-    ", see you on the other side :) \n";
-  char getinput[100];
+  char message[BUFFSIZE];
   char *exit_sig = "exit\n";
   char *client_exit_sig = "cutmeoff\n";
-  int sig;
-  while (1)
-  {
-
-    sprintf(getinput,
-            "(client %d)say somehing >>",
-            clientnumber);
-    while (1) {
-      if (0 >= read(clientsocket,message,BUFFSIZE-1))
-      {
-        perror("did you hear anything?");
-        goto error_handle;
-      }
-      broadcast(message,clientnumber);
-      printf("client %d)>> %s",clientnumber,message);
-      if(!strncmp(message,client_exit_sig,strlen(client_exit_sig)))
-      {
-        close(clientsocket);
-        clientsocket = -1;
-        clients[clientnumber]= -1;
-        goto error_handle;
-      }
-
+  while (1) {
+    if (0 >= read(clientsocket,message,BUFFSIZE-1))
+    {
+      perror("did you hear anything?");
+      goto error_handle;
+    }
+    broadcast(message,clientnumber);
+    printf("client %d)>> %s",clientnumber,message);
+    if(!strncmp(message,
+                client_exit_sig,
+                strlen(client_exit_sig)))
+    {
+      close(clientsocket);
+      clientsocket = -1;
+      clients[clientnumber]= -1;
+      goto error_handle;
     }
   }
-
 error_handle:
   if(-1 != clientsocket)
     close(clientsocket);
@@ -94,7 +94,7 @@ int main()
   client_info information;
   int opt = 1;
   int clientnumber=0;
-  int accept_socket,socketfd= socket(AF_INET,SOCK_STREAM,0);
+  int socketfd= socket(AF_INET,SOCK_STREAM,0);
   for(int i = 0;i<MAX_CLIENTS;i++)
   {
     clients[i] = -1;
@@ -103,6 +103,7 @@ int main()
   {
     perror("the system said no sockets :(");
     goto error_handle;
+    errno = SOCKET_ERROR;
   }
   setsockopt(socketfd, SOL_SOCKET,
              SO_REUSEADDR, &opt,

@@ -21,12 +21,13 @@ void *listening_funtion(void *serversocket)
       perror("did you hear anything?");
       return NULL;
     }
-    printf("\n%s",message);
+    printf("%s",message);
   }
 
 }
-int main()
+int main(int argc,char *argv[])
 {
+  #define SERVER_ADDRESS argv[1]
   pthread_t recv_thread;
   struct sockaddr_in address;
   char message[BUFFSIZE], *servername = "localhost";
@@ -41,7 +42,7 @@ int main()
   }
   address.sin_family = AF_INET;
   address.sin_port = htons(SERVER_PORT);
-  if (inet_pton(AF_INET, "127.0.0.1", &address.sin_addr)
+  if (inet_pton(AF_INET, SERVER_ADDRESS, &address.sin_addr)
     <= 0) {
     printf(
       "\nInvalid address/ Address not supported \n");
