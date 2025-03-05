@@ -20,7 +20,7 @@ enum ERRORS
   READ_ERROR =-7,
   ACCEPT_ERROR = -8,
   BIND_ERROR = -9,
-  ACCEPT_ERROR= -10,
+  SETSOCK_ERROR= -10,
   SOCKET_ERROR = -11
 };
 enum VALUES 
@@ -102,12 +102,16 @@ int main()
   if(socketfd < 0)
   {
     perror("the system said no sockets :(");
-    goto error_handle;
     errno = SOCKET_ERROR;
+    goto error_handle;
   }
-  setsockopt(socketfd, SOL_SOCKET,
+  if ( 0 != setsockopt(socketfd, SOL_SOCKET,
              SO_REUSEADDR, &opt,
-             sizeof(opt));
+             sizeof(opt)))
+  {
+    errno = SETSOCK_ERROR;
+    goto error_handle;
+  }
   address.sin_family = AF_INET;
   address.sin_port = htons(PORT);
 
