@@ -52,23 +52,15 @@ void * server_interface(void *notused);
 
 int broadcast(char * message,int clientnumber)
 {
-  char indicator[100];
-  snprintf(indicator,99,
-          "(client %d)>>",
-          clientnumber);
-  char broadcast_text[BUFFSIZE+100];
-  snprintf(broadcast_text,BUFFSIZE+99,
-          "(client %d)>>%s",clientnumber,
-          message);
   for (int i = 0;i<MAX_CLIENTS;i++)
   {
     if(SOCKET_NOT_IN_USE == clients[i] 
-      || clientnumber == i)
+      )
       continue;
 
     if(0 >= send(clients[i],
-                 broadcast_text,
-                 strlen(broadcast_text),
+                 message,
+                 strlen(message),
                  MSG_EOR))
     {
       perror("i forgot how to shout");
@@ -78,7 +70,6 @@ int broadcast(char * message,int clientnumber)
 }
 void * handle_client(void* clientnumber_ptr)
 {
-  FILE *chat_file = fopen(CHAT_FILE,"r");
   int clientnumber = *((int*) clientnumber_ptr);
   int clientsocket = clients[clientnumber];
   char message[BUFFSIZE];
@@ -87,7 +78,6 @@ void * handle_client(void* clientnumber_ptr)
   char *client_exit_sig = "cutmeoff\n";
   while (1) 
   {
-    chat_file = fopen(CHAT_FILE,"a");
     if (0 >= read(clientsocket,message,BUFFSIZE-1))
     {
       perror("did you hear anything?");
@@ -96,9 +86,8 @@ void * handle_client(void* clientnumber_ptr)
     sprintf(printed_message,
             "client %d)>> %s",
             clientnumber,message);
-    fputs(printed_message, chat_file);
-    fclose(chat_file);
-    broadcast(message,clientnumber);
+    printf("%s",printed_message);
+    broadcast(printed_message,clientnumber);
     if(!strncmp(message,
                 client_exit_sig,
                 strlen(client_exit_sig)))
@@ -130,8 +119,6 @@ void * server_interface(void *notused)
                 server_exit_sig,
                 strlen(server_exit_sig)))
     {
-      FILE *chat_file = fopen(CHAT_FILE,"w");
-      fclose(chat_file);
       for(int i =0 ; i < MAX_CLIENTS ; i++)
       {
         if (SOCKET_NOT_IN_USE == clients[i])
