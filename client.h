@@ -14,6 +14,8 @@
 #define GETINPUTSTR "saysomething>>"
 
 
+/*this handles a special signal 
+ * means the server is exiting*/
 void signal_handler(int signl)
 {
   FILE *chat_file;
@@ -26,6 +28,10 @@ void signal_handler(int signl)
     exit(0);
   }
 }
+
+/*those are functions used to display the 
+ * chat to the user and keep the ui nice ,
+ * i don't think they are robust*/
 void print_chat(char *filename)
 {
   FILE *chat_file = fopen(CHAT_FILE,"r");
@@ -36,21 +42,29 @@ void print_chat(char *filename)
   }
   fclose(chat_file);
 }
+
 void clear_chat(void)
 {
   fputs("\033c", stdout);
 }
+
 void update_chat(char *filename)
 {
   clear_chat();
   print_chat(filename);
 }
 
+
+/*listen for any new messages and updated the 
+ * chat file and the displayed chat if there is any*/
 void *listening_funtion(void *serversocket)
 {
+
+  /*yes , this just uses a file*/
   FILE *chat_file = fopen(CHAT_FILE,"r");
   int *socketfd = (int*) serversocket;
   char message[BUFFSIZE + 100];
+
   while(1)
   {
     chat_file = fopen(CHAT_FILE,"a");
